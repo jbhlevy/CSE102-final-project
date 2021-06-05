@@ -47,6 +47,10 @@ class NaiveUniverse(Universe):
         
 
 class AbstractNode:
+    
+    def __init__(self):
+        self._cache = None
+        
 
     @property
     def level(self):
@@ -73,12 +77,10 @@ class AbstractNode:
     
     def extend(self):
         node = self
-        print(node.population, 'nw:', node.nw.population, 'ne:', node.ne.population, 'sw:', node.sw.population, 'se:', node.se.population)
-        print(self.population)
         if node.level == 0: 
-            extended_nodenode = Node(self, AbstractNode.zero(self.level), AbstractNode.zero(self.level), AbstractNode.zero(self.level))
+            extended_node = Node(self, AbstractNode.zero(self.level), AbstractNode.zero(self.level), AbstractNode.zero(self.level))
         else:
-            extended_nodenode = Node(
+            extended_node = Node(
                 Node(
                     AbstractNode.zero(self.level-1),
                     AbstractNode.zero(self.level-1), 
@@ -102,37 +104,112 @@ class AbstractNode:
                     AbstractNode.zero(self.level-1),
                     AbstractNode.zero(self.level-1), 
                     AbstractNode.zero(self.level-1)
-                    )
                 )
-        return extended_nodenode
+            )
+        return extended_node
     
     def forward(self):
+        
+    
         if self.level < 2:
             return None 
         elif self.level == 2:
-            cells = [[nw.population], [ne.population], [sw.population], [ne.population]]
+            cells = [[self.nw.nw.population, self.nw.ne.population, self.ne.nw.population, self.ne.ne.population], 
+                     [self.nw.sw.population, self.nw.se.population, self.ne.sw.population, self.ne.se.population],
+                     [self.sw.nw.population, self.sw.ne.population, self.se.nw.population, self.se.ne.population],
+                     [self.sw.sw.population, self.sw.se.population, self.se.sw.population, self.se.se.population]]
             n = 4
-            m = 1
-            for i in range(n):
-                for j in range(m):
-                    cell = cells[i][j]
-                    counter = 0
-                    for k in range(-1, 2):
-                        for l in range(-1, 2):
-                            if (0<=i+k<self.n and 0<=j+l<self.m) and not (l==0 and k==0):
-                                if cells[i+k][j+l]:
-                                    counter += 1
-                    if cell and (counter != 2 and counter != 3):
-                        self.cells[i][j] = False
-                    if not cell and counter == 3:
-                        self.cells[i][j] = True
+            m = 4
+            naive_universe = NaiveUniverse(n, m, cells)
+            naive_universe.round()
             
+            return  Node(nw=CellNode(cells[1][1]), ne=CellNode(cells[1][2]), sw=CellNode(cells[2][1]), se=CellNode(cells[2][2]))
+        else:
+            rnw = self.nw.forward()
+            rne = self.ne.forward()
+            rsw = self.sw.forward()
+            rse = self.se.forward()
             
-        pass
+            left = Node(
+                nw = self.nw.sw,
+                ne = self.nw.se,
+                sw = self.sw.nw,
+                se = self.sw.ne
+            )
+            
+            right = Node(
+                nw = self.ne.sw,
+                ne = self.ne.se,
+                sw = self.se.nw,
+                se = self.se.ne
+                )
+            
+            top = Node(
+                nw = self.nw.ne,
+                ne = self.ne.nw,
+                sw = self.nw.se,
+                se = self.ne.sw
+                )
+            
+            bottom = Node(
+                nw = self.sw.ne,
+                ne = self.se.nw,
+                sw = self.sw.se,
+                se = self.se.sw
+                )
+            
+            center = Node(
+                nw = self.nw.se,
+                ne = self.ne.sw,
+                sw = self.sw.ne,
+                se = self.se.nw
+                )
+            
+            rcl = left.forward()
+            rcr = right.forward()
+            rtc = top.forward()
+            rbc  = bottom.forward()
+            
+            rcc = center.forward()
+            
+            anw = Node(
+                nw = rnw,
+                ne = rtc,
+                sw = rcl,
+                se = rcc
+                )
+            
+            ane = Node(
+                nw = rtc,
+                ne = rne,
+                sw = rcc,
+                se = rcr
+                )
+            
+            asw = Node(
+                nw = rcl, 
+                ne = rcc, 
+                sw = rsw, 
+                se = rbc
+                )
+            
+            ase = Node(
+                nw = rcc, 
+                ne = rcr, 
+                sw = rbc, 
+                se = rse
+                )
+            
+            C = Node(
+                nw = anw.forward(),
+                ne = ane.forward(),
+                sw = asw.forward(),
+                se = ase.forward()
+                )
+            
+            return C
 
-            
-    
-    
+                
 class CellNode(AbstractNode):
     def __init__(self, alive):
         super().__init__()
@@ -228,14 +305,30 @@ class HashLifeUniverse(Universe):
     def generation(self):
         return self._generation
         
-        
+    
+import time
+gen, m, n, data = (1, 3, 1, [[True], [True], [True]])
+if isinstance(gen, int):
+    gen = [None] * gen 
+    
+node = HashLifeUniverse(3, 1, [[True], [True], [True]]).root
+node = node.extend()
+print('node: ', node)
+# for g in gen:
+#   for _ in range(1):         # see the log
+#     node = node.extend()
+#   node = node.forward(g) if g is not None else node.forward()
+start = time.time()
+for _ in range(10):
+    node.forward()
+end = time.time()
 
-data = 3, 1, [[True], [True], [True]]
-test_node = HashLifeUniverse(*data).root
-extended_test_node = test_node.extend()
-print('results (pop, lvl):', extended_test_node.population, extended_test_node.level)
+print('LALALALALLALALALA: ' ,(end-start))
+    
 
 
+# print(node)
+    
 
 
 
