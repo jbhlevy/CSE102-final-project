@@ -49,7 +49,7 @@ class NaiveUniverse(Universe):
 import weakref
 HC  = weakref.WeakValueDictionary()
 class AbstractNode:
-    #BIG = True
+    BIG = True
     
     def __init__(self):
         self._cache = None
@@ -130,7 +130,7 @@ class AbstractNode:
     def extend(self):
         node = self
         if node.level == 0: 
-            extended_node = Node(self, AbstractNode.zero(self.level), AbstractNode.zero(self.level), AbstractNode.zero(self.level))
+            extended_node = Node(AbstractNode.zero(self.level),self, AbstractNode.zero(self.level), AbstractNode.zero(self.level))
         else:
             zero = AbstractNode.zero(self.level-1)
             extended_node = Node(
@@ -163,17 +163,31 @@ class AbstractNode:
     
     def forward(self, l=None):
         self._cache = {} if self._cache is None else self._cache
+        l = self.level if l is None else  min(l, self.level - 2)
+        # if l is None:
+        #     if (AbstractNode.canon(self), self.level) in self._cache:
+        #         return self._cache[(AbstractNode.canon(self), self.level)]
+        #     l = self.level
+            
+        # else:
+        #     l = min(l, self.level-2)
+        #     if ((AbstractNode.canon(self), l)) in self._cache:
+        #         return self._cache[(AbstractNode.canon(self), l)]
+            
         #print(self._cache)
         
-        if self in self._cache:
-            return self._cache[self]
+        if (AbstractNode.canon(self), l) in self._cache:
+            return self._cache[(AbstractNode.canon(self), l)]
+        
         
         if self.population == 0:
-            self._cache[self] = self.zero(self.level -1)
-            return self._cache[self]
+            C = self.zero(self.level -1)
+            self._cache.update({(AbstractNode.canon(self), l):C})
+            return C
         
     
         if self.level < 2:
+            self._cache.update({(AbstractNode.canon(self), l):None})
             return None 
         elif self.level == 2:
             cells = [[self.nw.nw.population, self.nw.ne.population, self.ne.nw.population, self.ne.ne.population], 
@@ -301,163 +315,105 @@ class AbstractNode:
                 res = res | (0b1 << 9)
             if ten_alive:
                 res = res | (0b1 << 10)
-            self._cache[self] = AbstractNode.node(
+            C = AbstractNode.node(
                 nw=AbstractNode.cell(0b1<<10&res),
                 ne=AbstractNode.cell(0b1<<9&res),
                 sw=AbstractNode.cell(0b1<<6&res),
                 se=AbstractNode.cell(0b1<<5&res))
-            return self._cache[self]
-            
-        else:
-            if l is not None:
-                if l >= 0 and l <= self.level-2:
-                    rnw = AbstractNode.node(
-                        nw = self.nw.nw.se,
-                        ne = self.nw.ne.sw,
-                        sw = self.nw.sw.ne,
-                        se = self.nw.se.sw
-                        )
-                    rne = AbstractNode.node(
-                        nw = self.ne.nw.se,
-                        ne = self.ne.ne.sw,
-                        sw = self.ne.sw.ne, 
-                        se = self.ne.se.nw
-                        )
-                    rtc = AbstractNode.node(
-                        nw = self.nw.ne.se,
-                        ne = self.ne.nw.sw, 
-                        sw = self.ne.se.ne,
-                        se = self.nw.sw.nw
-                        )
-                    rcl = AbstractNode.node(
-                        nw = self.nw.sw.se, 
-                        ne = self.nw.se.sw,
-                        sw = self.sw.nw.ne, 
-                        se = self.sw.ne.nw
-                        )
-                    rcr = AbstractNode.node(
-                        nw = self.ne.sw.se, 
-                        ne = self.ne.se.sw, 
-                        sw = self.se.nw.ne,
-                        se = self.se.ne.nw
-                        )
-                    
-                    rsw = AbstractNode.node(
-                        nw = self.sw.nw.se,
-                        ne = self.sw.ne.sw,
-                        sw = self.sw.sw.ne,
-                        se = self.sw.se.nw)
-                    
-                    rbc = AbstractNode.node(
-                        nw = self.sw.ne.se,
-                        ne = self.se.nw.sw,
-                        sw = self.sw.se.ne,
-                        se = self.se.sw.nw)
-                    
-                    rse = AbstractNode.node(
-                        nw = self.se.nw.se,
-                        ne = self.se.ne.sw,
-                        sw = self.se.sw.ne,
-                        se = self.se.se.nw)
-                    
-                    rcc = AbstractNode.node(
-                        nw = self.nw.se.se,
-                        ne = self.ne.sw.sw,
-                        sw = self.sw.ne.ne,
-                        se = self.se.nw.nw)
-                    
-                    anw = AbstractNode.node(
-                        nw = rnw, 
-                        ne = rtc, 
-                        sw = rcl, 
-                        se = rcc
-                        )
-                    ane = AbstractNode.node(
-                        nw = rtc, 
-                        ne = rne, 
-                        sw = rcc, 
-                        se = rcr
-                        )
-                    
-                    asw = AbstractNode.node(
-                        nw = rcl,
-                        ne = rcc,
-                        sw = rsw,
-                        se = rbc)
-                    
-                    ase = AbstractNode.node(
-                        nw = rcc,
-                        ne = rcr,
-                        sw = rbc,
-                        se = rse)
-                    
-                    C = AbstractNode.node(
-                        nw = anw.forward(),
-                        ne = ane.forward(), 
-                        sw = asw.forward(), 
-                        se = ase.forward()
-                        )
-                    
-                    self._cache[self] = C
-                    return self._cache[self]
+            self._cache.update({(AbstractNode.canon(self),l):C})
+            return C
+        
     
-            else:
-                rnw = self.nw.forward()
-                #self._cache.update(self.nw._cache)
-                rne = self.ne.forward()
-                #self._cache.update(self.ne._cache)
-                rsw = self.sw.forward()
-                #self._cache.update(self.sw._cache)
-                rse = self.se.forward()
-                #self._cache.update(self.se._cache)
-                
-                left = AbstractNode.node(
-                    nw = self.nw.sw,
-                    ne = self.nw.se,
-                    sw = self.sw.nw,
-                    se = self.sw.ne
+        else:
+            rnw = self.nw.forward(l)
+            rne = self.ne.forward(l)
+            rsw = self.sw.forward(l)
+            rse = self.se.forward(l)
+            
+            left = AbstractNode.node(
+                nw = self.nw.sw,
+                ne = self.nw.se,
+                sw = self.sw.nw,
+                se = self.sw.ne
                 )
+            
+            right = AbstractNode.node(
+                nw = self.ne.sw,
+                ne = self.ne.se,
+                sw = self.se.nw,
+                se = self.se.ne
+                )
+            
+            top = AbstractNode.node(
+                nw = self.nw.ne,
+                ne = self.ne.nw,
+                sw = self.nw.se,
+                se = self.ne.sw
+                )
+            
+            bottom = AbstractNode.node(
+                nw = self.sw.ne,
+                ne = self.se.nw,
+                sw = self.sw.se,
+                se = self.se.sw
+                )
+            
+            center = AbstractNode.node(
+                nw = self.nw.se,
+                ne = self.ne.sw,
+                sw = self.sw.ne,
+                se = self.se.nw
+                )
+            
+            rcl = left.forward(l)
+            rcr = right.forward(l)
+            rtc = top.forward(l)
+            rbc  = bottom.forward(l)  
+            rcc = center.forward(l)
+
+            
+            if l < self.level-2 : 
                 
-                right = AbstractNode.node(
-                    nw = self.ne.sw,
-                    ne = self.ne.se,
-                    sw = self.se.nw,
-                    se = self.se.ne
+                n_w = AbstractNode.node(
+                    nw = rnw.se, 
+                    ne = rtc.sw, 
+                    sw = rcl.ne, 
+                    se = rcc.nw
                     )
                 
-                top = AbstractNode.node(
-                    nw = self.nw.ne,
-                    ne = self.ne.nw,
-                    sw = self.nw.se,
-                    se = self.ne.sw
+                n_e = AbstractNode.node(
+                    nw = rtc.se, 
+                    ne = rne.sw, 
+                    sw = rcc.ne, 
+                    se = rcr.nw
                     )
                 
-                bottom = AbstractNode.node(
-                    nw = self.sw.ne,
-                    ne = self.se.nw,
-                    sw = self.sw.se,
-                    se = self.se.sw
+                s_w = AbstractNode.node(
+                    nw = rcl.se, 
+                    ne = rcc.sw, 
+                    sw = rsw.ne, 
+                    se = rbc.nw
                     )
-                
-                center = AbstractNode.node(
-                    nw = self.nw.se,
-                    ne = self.ne.sw,
-                    sw = self.sw.ne,
-                    se = self.se.nw
+                s_e = AbstractNode.node(
+                    nw = rcc.se, 
+                    ne = rcr.sw,
+                    sw = rbc.ne, 
+                    se = rse.nw
                     )
+                C = AbstractNode.node(
+                    nw = n_w, 
+                    ne = n_e, 
+                    sw = s_w,
+                    se = s_e
+                    )
+                self._cache.update({(AbstractNode.canon(self), l):C})
                 
-                rcl = left.forward()
-                #self._cache.update(left._cache)
-                rcr = right.forward()
-                #self._cache.update(right._cache)
-                rtc = top.forward()
-                #self._cache.update(top._cache)
-                rbc  = bottom.forward()
-                #self._cache.update(bottom._cache)
+                return C
+                    
+                    
+            else:
                 
-                rcc = center.forward()
-                #self._cache.update(center._cache)
-                
+            
                 anw = AbstractNode.node(
                     nw = rnw,
                     ne = rtc,
@@ -486,13 +442,13 @@ class AbstractNode:
                     se = rse
                     )
                 
-                C_nw = anw.forward()
+                C_nw = anw.forward(l)
                 #self._cache.update(anw._cache)
-                C_ne = ane.forward()
+                C_ne = ane.forward(l)
                 #self._cache.update(ane._cache)
-                C_sw = asw.forward()
+                C_sw = asw.forward(l)
                 #self._cache.update(asw._cache)
-                C_se = ase.forward()
+                C_se = ase.forward(l)
                 #self._cache.update(ase._cache)
                 
                 C = AbstractNode.node(
@@ -501,9 +457,9 @@ class AbstractNode:
                     sw = C_sw,
                     se = C_se
                     )
-                self._cache[self] = C
+                self._cache.update({(AbstractNode.canon(self),l):C})
                 
-                return self._cache[self]
+                return C
         
         
     def get(self, i, j):
@@ -542,6 +498,25 @@ class AbstractNode:
                 return self.nw.get(i+2**(self.level-2), j-2**(self.level-2))
             elif i < 0 and j < 0:
                 return self.sw.get(i+2**(self.level-2), j+2**(self.level-2))
+            
+    def all_dead_outside(self):
+        outside = [self.nw.nw,
+                   self.nw.sw,
+                   self.nw.ne,
+                   self.ne.ne,
+                   self.ne.nw,
+                   self.ne.se,
+                   self.sw.sw,
+                   self.sw.nw,
+                   self.sw.se,
+                   self.se.se,
+                   self.se.sw,
+                   self.se.ne]
+        
+        for cell in outside:
+            if cell.population > 0:
+                return False
+        return True
                 
 
                 
@@ -789,24 +764,105 @@ class HashLifeUniverse(Universe):
 
     def get(self, i, j):
         return self._root.get(i, j)
+    
+    
+    # def extend(self, k):
+    #     print('in extend', k)
+        
+    #     a = self._root
+    #     pop = \
+    #         a.nw.nw.population + a.nw.ne.population + a.nw.sw.population + \
+    #         a.ne.nw.population + a.ne.ne.population + a.ne.se.population + \
+    #         a.sw.nw.population + a.sw.sw.population + a.sw.se.population + \
+    #         a.se.ne.population + a.se.se.population + a.se.sw.population
+            
+            
+    #     while ((a.level < max(k, 2)) or (pop != 0)):
+            
+    #         a = AbstractNode.extend(a)
+    #         print('extending')
+            
+    #         pop = \
+    #         a.nw.nw.population + a.nw.ne.population + a.nw.sw.population + \
+    #         a.ne.nw.population + a.ne.ne.population + a.ne.se.population + \
+    #         a.sw.nw.population + a.sw.sw.population + a.sw.se.population + \
+    #         a.se.ne.population + a.se.se.population + a.se.sw.population
+            
+    #     return a
         
     def extend(self, k):
-        k = self.level
-        all_dead = True
-        for i in range(-2**k, 2**k, 2**(k-1)):
-            for j in range(-2**k, 2**k, 2**(k-1)):
-                if self.get(i, j):
-                    all_dead = False
-                    break
-            if not all_dead:
-                break
-        if (not all_dead) or self._root.level < max(k, 2):
-            self._root.extend(k)
+        print('in extend', k)
+        node = self._root
+        #if not node.all_dead_outside():
+        while not node.all_dead_outside() or node.level < max(k,2):
+            print('extending')
+            node = node.extend()
+        return node
         
 
+        # if not self.all_dead_outside() or self._root.level < max(k, 2):
+        # node = self._root
+        # while node.level < max(k,2) or not self.all_dead_outside(): 
+        #     print('extending, lvl:', node.level)
+        #     node = node.extend()
+        # return node
+        # else:
+        #     while self._root.level < max(k, 2):
+        #         node = self._root.extend()
+        #         return node
+        # return 'lalal'
+
     def rounds(self, n):
-        # Do something here
-        raise NotImplementedError()
+        # m = n
+        # while m != 0:
+        #     i = 0
+        #     while 2**i < m:
+        #         i += 1
+        #     self._root.forward(i-1)
+        #     m -= 2**(i-1)
+        decomposition = self.decomposition(n)
+        print("decompositon",  decomposition)
+        # for i in range(len(decomposition)-1, -1, -1):
+        #     toto = decomposition[i]
+        #     print('i : ', toto)
+        #     self._root = self.extend(2*toto)
+        #     self._root.forward(toto)
+        #     self._generation = self._generation + 2**toto
+        # return self._root
+        for el in decomposition:
+            toto = el
+            print('i', toto)
+            self._root = self.extend(2*toto)
+            self._root = self._root.forward(toto)
+            self._generation = self._generation + 2**toto
+        #return self._root
+    
+    # def rounds(self, n):
+    #     a = str(bin(n))[2:] 
+        
+    #     for i in range(len(a)):
+            
+    #         if( a[len(a) - 1 - i] == '1'):
+    #             print('i : ', i)
+                
+    #             self._root = self.extend(2*i)
+    #             self._root = self._root.forward(i)
+    #             self._generation = self._generation + 2**i
+                
+    #     return self._root
+    def decomposition(self, n):
+        powers = []
+        b = n
+        i = 0b1111111111111111
+        j = 15
+        while b != 0:
+            c = b & i
+            if c != b:
+                powers.append(j+1)
+            b = c
+            i -= 2**(j)
+            j -= 1
+        return powers
 
     def round(self):
         return self.rounds(1)
@@ -842,30 +898,56 @@ class HashLifeUniverse(Universe):
 #     node.forward()
 # end = time.time()
 
-gen, m, n, data = ([0, 1, 2, 2, 1, 5, 4, 4], 3, 1, [[True], [True], [True]])# The test input data
+#gen, m, n, data = ([0, 1, 2, 2, 1, 5, 4, 4], 3, 1, [[True], [True], [True]])# The test input data
 
-if isinstance(gen, int):
-  gen = [None] * gen
+# if isinstance(gen, int):
+#   gen = [None] * gen
 
-U = HashLifeUniverse(m, n, data)
-print(U.root)
-node = U.root
-print(node)
+# U = HashLifeUniverse(m, n, data)
+# print(U.root)
+# node = U.root
+# node.extend()
+# node.extend()
+# node.forward()
+# #print(node.)
+# #print(node)
 
-for g in gen:
-  for _ in range(1):         # see the log
-      print('node in', node)
-      node = node.extend()
-  node = node.forward(g) if g is not None else node.forward()
+# # for g in gen:
+# #   for _ in range(2):         # see the log
+# #       print('node in', node)
+# #       node = node.extend()
+# #   node = node.forward(g) if g is not None else node.forward()print(node.nw.se.population)
+# print(node.level)
 
 
-# print('LALALALALLALALALA: ' ,(end-start))
+# # print('LALALALALLALALALA: ' ,(end-start))
     
 
-#Uni = HashLifeUniverse(36, 9, [[False, False, False, True, True, False, False, False, False], [False, False, False, True, True, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, True, True, True, False, False, False, False], [False, True, False, False, False, True, False, False, False], [True, False, False, False, False, False, True, False, False], [True, False, False, False, False, False, True, False, False], [False, False, False, True, False, False, False, False, False], [False, True, False, False, False, True, False, False, False], [False, False, True, True, True, False, False, False, False], [False, False, False, True, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, True, True, True, False, False], [False, False, False, False, True, True, True, False, False], [False, False, False, True, False, False, False, True, False], [False, False, False, False, False, False, False, False, False], [False, False, True, True, False, False, False, True, True], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, True, True, False, False], [False, False, False, False, False, True, True, False, False]])
-# n = Uni.root.ne.sw.population
-#print(Uni.get(-18,-1))
-# # print(node)
+# #Uni = HashLifeUniverse(36, 9, [[False, False, False, True, True, False, False, False, False], [False, False, False, True, True, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, True, True, True, False, False, False, False], [False, True, False, False, False, True, False, False, False], [True, False, False, False, False, False, True, False, False], [True, False, False, False, False, False, True, False, False], [False, False, False, True, False, False, False, False, False], [False, True, False, False, False, True, False, False, False], [False, False, True, True, True, False, False, False, False], [False, False, False, True, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, True, True, True, False, False], [False, False, False, False, True, True, True, False, False], [False, False, False, True, False, False, False, True, False], [False, False, False, False, False, False, False, False, False], [False, False, True, True, False, False, False, True, True], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, False, False, False, False], [False, False, False, False, False, True, True, False, False], [False, False, False, False, False, True, True, False, False]])
+# n = U.root.ne.sw.population
+# print(n)
+# #print(Uni.get(-18,-1))
+# # # print(node)
+
+gs, m, n, data = ([655, 115, 26], 3, 1, [[True], [True], [True]]) # The test input data
+
+universe = HashLifeUniverse(m, n, data)
+#node = universe._root
+#universe.extend(8)
+#node = universe._root
+# for _ in range(8):
+#     node = node.extend()
+# print('lvl', node.level)
+
+# for g in gs:
+#   universe.rounds(g)
+
+universe.rounds(655)
+node = universe._root
+
+#/sw/ne/ne/ne/ne/ne/ne/ne)
+print('pop test de johnny BOY mais en vrai ballec', node.sw.ne.sw.ne.ne.ne.ne.ne.ne.population)
+print('Pop le vrai test d Alex le dieu grec, celui qui est dur', node.nw.se.se.se.se.se.se.se.population)
     
 
 
@@ -877,6 +959,45 @@ for g in gen:
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Almost there...
+# 1000 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 
 
