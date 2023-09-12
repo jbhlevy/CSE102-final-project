@@ -946,64 +946,9 @@ universe.rounds(655)
 node = universe._root
 
 #/sw/ne/ne/ne/ne/ne/ne/ne)
-print('pop test de johnny BOY mais en vrai ballec', node.sw.ne.sw.ne.ne.ne.ne.ne.ne.population)
-print('Pop le vrai test d Alex le dieu grec, celui qui est dur', node.nw.se.se.se.se.se.se.se.population)
+print('test 1', node.sw.ne.sw.ne.ne.ne.ne.ne.ne.population)
+print('test 2', node.nw.se.se.se.se.se.se.se.population)
     
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#Almost there...
-# 1000 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
-
-
-
-
-
 
 
 
